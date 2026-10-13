@@ -1,4 +1,8 @@
 def calculate_risk(transaction):
+
+    if transaction.amount > 50000:
+        return "CRITICAL"
+
     if transaction.amount > 10000:
         return "HIGH"
 
