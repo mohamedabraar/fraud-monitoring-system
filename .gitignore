@@ -2,5 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 .env
+.pytest_cache/
 .vscode/settings.local.json
+src/fraud_monitoring.db
 logs/
+*.log

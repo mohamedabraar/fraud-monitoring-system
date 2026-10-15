@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Fraud Operations Dashboard</title>
+
+    <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='styles.css') }}"
+    >
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-mark">FM</div>
+
+            <div>
+                <h1>Fraud Monitor</h1>
+                <span>Operations Centre</span>
+            </div>
+        </div>
+
+        <nav class="navigation">
+            <a class="nav-link active" href="#dashboard">
+                <span>⌂</span>
+                Dashboard
+            </a>
+
+            <a class="nav-link" href="#assessment">
+                <span>＋</span>
+                New Assessment
+            </a>
+
+            <a class="nav-link" href="#transactions">
+                <span>↺</span>
+                Transactions
+            </a>
+
+            <a class="nav-link" href="#alerts">
+                <span>!</span>
+                Alerts
+            </a>
+
+            <a class="nav-link" href="#audit">
+                <span>≡</span>
+                Audit Trail
+            </a>
+
+            <a
+                class="nav-link"
+                href="{{ url_for('export_transactions_excel') }}"
+            >
+                <span>⇩</span>
+                Export Excel Report
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="system-status">
+                <span class="status-dot"></span>
+
+                <div>
+                    <strong>System operational</strong>
+                    <small>Local assessment environment</small>
+                </div>
+            </div>
+        </div>
+
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">FRAUD OPERATIONS</p>
+                <h2>Transaction Monitoring Dashboard</h2>
+                <p class="topbar-description">
+                    Assess transactions, monitor alerts and review
+                    operational activity.
+                </p>
+            </div>
+
+            <div class="topbar-actions">
+                <button
+                    id="themeToggle"
+                    class="icon-button"
+                    type="button"
+                    aria-label="Toggle dark mode"
+                >
+                    ◐
+                </button>
+
+                <div class="user-badge">
+                    <div class="user-avatar">MB</div>
+
+                    <div>
+                        <strong>Mohamed Bashir</strong>
+                        <span>Fraud Operations</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section id="dashboard" class="metrics-grid">
+
+            <article class="metric-card">
+                <div class="metric-icon blue">↔</div>
+
+                <div>
+                    <span class="metric-label">
+                        Total Transactions
+                    </span>
+
+                    <strong class="metric-value">
+                        {{ metrics.total_transactions }}
+                    </strong>
+
+                    <small>Transactions assessed</small>
+                </div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-icon red">!</div>
+
+                <div>
+                    <span class="metric-label">
+                        Active Alerts
+                    </span>
+
+                    <strong class="metric-value">
+                        {{ metrics.active_alerts }}
+                    </strong>
+
+                    <small>Requiring investigation</small>
+                </div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-icon purple">◆</div>
+
+                <div>
+                    <span class="metric-label">
+                        Critical Risks
+                    </span>
+
+                    <strong class="metric-value">
+                        {{ metrics.critical_transactions }}
+                    </strong>
+
+                    <small>Critical assessments</small>
+                </div>
+            </article>
+
+            <article class="metric-card">
+                <div class="metric-icon amber">%</div>
+
+                <div>
+                    <span class="metric-label">
+                        Average Risk Score
+                    </span>
+
+                    <strong class="metric-value">
+                        {{ metrics.average_risk_score }}%
+                    </strong>
+
+                    <small>Across all transactions</small>
+                </div>
+            </article>
+
+            <article class="metric-card wide-metric">
+                <div class="metric-icon green">R</div>
+
+                <div>
+                    <span class="metric-label">
+                        Total Value Assessed
+                    </span>
+
+                    <strong class="metric-value">
+                        R {{ "{:,.2f}".format(metrics.total_value) }}
+                    </strong>
+
+                    <small>Recorded transaction value</small>
+                </div>
+            </article>
+
+        </section>
+
+        <section class="dashboard-grid">
+
+            <article id="assessment" class="panel assessment-panel">
+
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">NEW ASSESSMENT</p>
+                        <h3>Evaluate Transaction</h3>
+                    </div>
+
+                    <span class="panel-badge">
+                        Real-time rules
+                    </span>
+                </div>
+
+                {% if errors %}
+                    <div class="error-panel">
+                        <strong>
+                            Please correct the following:
+                        </strong>
+
+                        <ul>
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <form method="POST" class="assessment-form">
+
+                    <div class="form-grid">
+
+                        <div class="form-field">
+                            <label for="customer_name">
+                                Customer name
+                            </label>
+
+                            <input
+                                id="customer_name"
+                                name="customer_name"
+                                type="text"
+                                placeholder="Enter customer name"
+                                value="{{ request.form.get(
+                                    'customer_name',
+                                    ''
+                                ) }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field">
+                            <label for="account_number">
+                                Account number
+                            </label>
+
+                            <input
+                                id="account_number"
+                                name="account_number"
+                                type="text"
+                                inputmode="numeric"
+                                placeholder="Enter account number"
+                                value="{{ request.form.get(
+                                    'account_number',
+                                    ''
+                                ) }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field">
+                            <label for="branch">
+                                Branch
+                            </label>
+
+                            <input
+                                id="branch"
+                                name="branch"
+                                type="text"
+                                placeholder="Example: Johannesburg"
+                                value="{{ request.form.get(
+                                    'branch',
+                                    ''
+                                ) }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field">
+                            <label for="country">
+                                Transaction location
+                            </label>
+
+                            <select
+                                id="country"
+                                name="country"
+                                required
+                            >
+                                <option value="">
+                                    Select location
+                                </option>
+
+                                <option value="South Africa">
+                                    South Africa
+                                </option>
+
+                                <option value="International">
+                                    International
+                                </option>
+
+                                <option value="High Risk Region">
+                                    High Risk Region
+                                </option>
+
+                                <option value="Unknown">
+                                    Unknown
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="transaction_type">
+                                Transaction type
+                            </label>
+
+                            <select
+                                id="transaction_type"
+                                name="transaction_type"
+                                required
+                            >
+                                <option value="">
+                                    Select transaction type
+                                </option>
+
+                                <option value="Card Payment">
+                                    Card Payment
+                                </option>
+
+                                <option value="EFT">
+                                    EFT
+                                </option>
+
+                                <option value="Beneficiary Payment">
+                                    Beneficiary Payment
+                                </option>
+
+                                <option value="Cash Withdrawal">
+                                    Cash Withdrawal
+                                </option>
+
+                                <option value="International Transfer">
+                                    International Transfer
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="channel">
+                                Transaction channel
+                            </label>
+
+                            <select
+                                id="channel"
+                                name="channel"
+                                required
+                            >
+                                <option value="">
+                                    Select channel
+                                </option>
+
+                                <option value="Branch">
+                                    Branch
+                                </option>
+
+                                <option value="ATM">
+                                    ATM
+                                </option>
+
+                                <option value="Online">
+                                    Online
+                                </option>
+
+                                <option value="Mobile Banking">
+                                    Mobile Banking
+                                </option>
+
+                                <option value="API">
+                                    API
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-field full-width">
+                            <label for="amount">
+                                Transaction amount
+                            </label>
+
+                            <div class="currency-input">
+                                <span>R</span>
+
+                                <input
+                                    id="amount"
+                                    name="amount"
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value="{{ request.form.get(
+                                        'amount',
+                                        ''
+                                    ) }}"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        type="submit"
+                    >
+                        <span>Evaluate Transaction</span>
+                        <span>→</span>
+                    </button>
+
+                    <p class="form-notice">
+                        This application uses simulated rules and
+                        synthetic demonstration data.
+                    </p>
+
+                </form>
+
+            </article>
+
+            <article class="panel distribution-panel">
+
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">RISK ANALYTICS</p>
+                        <h3>Risk Distribution</h3>
+                    </div>
+                </div>
+
+                {% set total = metrics.total_transactions %}
+
+                <div class="distribution-chart">
+
+                    {% for level, colour in [
+                        ('LOW', 'green'),
+                        ('MEDIUM', 'amber'),
+                        ('HIGH', 'red'),
+                        ('CRITICAL', 'purple')
+                    ] %}
+
+                        {% set value =
+                            metrics.distribution[level]
+                        %}
+
+                        {% if total > 0 %}
+                            {% set percentage =
+                                ((value / total) * 100) | round
+                            %}
+                        {% else %}
+                            {% set percentage = 0 %}
+                        {% endif %}
+
+                        <div class="chart-row">
+
+                            <div class="chart-label">
+                                <span>
+                                    {{ level }}
+                                </span>
+
+                                <strong>
+                                    {{ value }}
+                                </strong>
+                            </div>
+
+                            <div class="chart-track">
+                                <div
+                                    class="chart-bar {{ colour }}"
+                                    data-width="{{ percentage }}"
+                                ></div>
+                            </div>
+
+                            <small>
+                                {{ percentage }}%
+                            </small>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                <div class="chart-summary">
+                    <span>Assessment coverage</span>
+
+                    <strong>
+                        {{ metrics.total_transactions }}
+                        transactions
+                    </strong>
+                </div>
+
+            </article>
+
+        </section>
+
+        {% if result %}
+
+            <section class="result-section">
+
+                <article
+                    class="result-banner
+                    risk-{{ result.assessment.risk_level.lower() }}"
+                >
+
+                    <div>
+                        <p class="eyebrow">ASSESSMENT COMPLETED</p>
+
+                        <h3>
+                            {{ result.assessment.risk_level }}
+                            Risk Transaction
+                        </h3>
+
+                        <p>
+                            {{ result.alert.message }}
+                        </p>
+                    </div>
+
+                    <div class="risk-score-ring">
+                        <strong>
+                            {{ result.assessment.risk_score }}
+                        </strong>
+
+                        <span>/100</span>
+                    </div>
+
+                </article>
+
+                <div class="result-grid">
+
+                    <article class="panel transaction-summary">
+
+                        <div class="panel-header">
+                            <div>
+                                <p class="eyebrow">
+                                    TRANSACTION DETAILS
+                                </p>
+
+                                <h3>
+                                    Assessment Summary
+                                </h3>
+                            </div>
+
+                            <span
+                                class="risk-pill
+                                {{ result.assessment.risk_level.lower() }}"
+                            >
+                                {{ result.assessment.risk_level }}
+                            </span>
+                        </div>
+
+                        <div class="detail-grid">
+
+                            <div class="detail-item">
+                                <span>Transaction ID</span>
+
+                                <strong>
+                                    {{
+                                        result.transaction.transaction_id
+                                    }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Assessment date</span>
+
+                                <strong>
+                                    {{
+                                        result.transaction.transaction_date
+                                    }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Customer</span>
+
+                                <strong>
+                                    {{
+                                        result.transaction.customer_name
+                                    }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Amount</span>
+
+                                <strong>
+                                    R {{
+                                        "{:,.2f}".format(
+                                            result.transaction.amount
+                                        )
+                                    }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Transaction type</span>
+
+                                <strong>
+                                    {{
+                                        result.transaction.transaction_type
+                                    }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Channel</span>
+
+                                <strong>
+                                    {{ result.transaction.channel }}
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Fraud probability</span>
+
+                                <strong>
+                                    {{
+                                        result.assessment.fraud_probability
+                                    }}%
+                                </strong>
+                            </div>
+
+                            <div class="detail-item">
+                                <span>Alert status</span>
+
+                                <strong>
+                                    {{ result.alert.alert_status }}
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-heading">
+                                <span>Fraud probability</span>
+
+                                <strong>
+                                    {{
+                                        result.assessment.fraud_probability
+                                    }}%
+                                </strong>
+                            </div>
+
+                            <div class="progress-track">
+                                <div
+                                    class="progress-fill
+                                    {{ result.assessment.risk_level.lower() }}"
+                                    data-width="{{
+                                        result.assessment.fraud_probability
+                                    }}"
+                                ></div>
+                            </div>
+                        </div>
+
+                    </article>
+
+                    <article class="panel alert-panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <p class="eyebrow">
+                                    CASE MANAGEMENT
+                                </p>
+
+                                <h3>Alert Decision</h3>
+                            </div>
+
+                            <span
+                                class="status-pill
+                                {{ result.alert.alert_status.lower() }}"
+                            >
+                                {{ result.alert.alert_status }}
+                            </span>
+                        </div>
+
+                        <div class="alert-reference">
+                            <span>Alert reference</span>
+
+                            <strong>
+                                {{ result.alert.alert_reference }}
+                            </strong>
+                        </div>
+
+                        <div class="alert-information">
+
+                            <div>
+                                <span>Priority</span>
+
+                                <strong>
+                                    {{ result.alert.case_priority }}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Assigned team</span>
+
+                                <strong>
+                                    {{ result.alert.assigned_team }}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Generated</span>
+
+                                <strong>
+                                    {{ result.alert.generated_at }}
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <h4>Risk indicators</h4>
+
+                        <ul class="reason-list">
+
+                            {% for reason in
+                                result.assessment.reasons
+                            %}
+
+                                <li>
+                                    <span>✓</span>
+                                    {{ reason }}
+                                </li>
+
+                            {% endfor %}
+
+                        </ul>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+        {% endif %}
+
+        <section class="records-grid">
+
+            <article id="transactions" class="panel records-panel">
+
+                <div class="panel-header records-heading">
+
+                    <div>
+                        <p class="eyebrow">
+                            TRANSACTION ACTIVITY
+                        </p>
+
+                        <h3>Recent Transactions</h3>
+                    </div>
+
+                    <div class="table-actions">
+                        <input
+                            id="transactionSearch"
+                            class="table-search"
+                            type="search"
+                            placeholder="Search transactions"
+                        >
+
+                        <select
+                            id="riskFilter"
+                            class="table-filter"
+                        >
+                            <option value="ALL">
+                                All risk levels
+                            </option>
+
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">
+                                Critical
+                            </option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="table-wrapper">
+
+                    <table id="transactionTable">
+
+                        <thead>
+                            <tr>
+                                <th>Transaction</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Risk</th>
+                                <th>Score</th>
+                                <th>Alert</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for transaction in transactions %}
+
+                            <tr data-risk="{{ transaction.risk_level }}">
+
+                                <td>
+                                    <strong>
+                                        {{ transaction.transaction_id }}
+                                    </strong>
+
+                                    <small>
+                                        {{ transaction.transaction_date }}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ transaction.customer_name }}
+                                    </strong>
+
+                                    <small>
+                                        {{ transaction.account_number }}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    R {{ "{:,.2f}".format(transaction.amount) }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.transaction_type }}
+
+                                    <small>
+                                        {{ transaction.channel }}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    <span class="risk-pill {{ transaction.risk_level.lower() }}">
+                                        {{ transaction.risk_level }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ transaction.risk_score }}/100
+                                </td>
+
+                                <td>
+                                    <span class="status-pill {{ transaction.alert_status.lower() }}">
+                                        {{ transaction.alert_status }}
+                                    </span>
+                                </td>
+
+                            </tr>
+
+                            {% else %}
+
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    No transactions have been assessed yet.
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+
+<script
+    src="{{ url_for('static', filename='app.js') }}"
+></script>
+
+</body>
+</html>
